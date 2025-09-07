@@ -1,0 +1,20 @@
+server:
+  host: "172.21.22.200"
+  port: 443
+  base_path: "https://idp.local"
+
+oidc:
+  issuer: "https://idp.local"
+  signing:
+    privateKeyFile: "signing-key.pem"
+    keyID: "idp-key"
+
+routes:
+  discovery: "/.well-known/openid-configuration"
+  jwks: "/.well-known/jwks.json"
+  authorize: "/oauth2/v1/authorize"
+  token: "/oauth2/v1/token"
+  userinfo: "/oauth2/v1/userinfo"
+  introspect: "/oauth2/v1/introspect"
+  revoke: "/oauth2/v1/revoke"
+  logout: "/oauth2/v1/logout"

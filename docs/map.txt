@@ -1,0 +1,82 @@
+----------------------------------------------------------------------------------------------------------------
+
+Interface (HTTP)
+└── AuthorizeHandler → calls AuthorizeService
+
+Application
+└── AuthorizeService
+    ├── ClientRepo (domain interface)
+    ├── FlowRegistry (app interface)
+    └── AuthorizeFlow
+        ├── Validator (infra)
+        └── Handler (infra, calls DelegationService + AuthorizationCodeRepo)
+
+Domain
+├── Entities: AuthorizationCode, AuthorizeRequest, Client
+├── Interfaces: AuthorizationCodeRepo, ClientRepo
+└── Rules: redirect URI match, PKCE check, expiry
+
+Infrastructure
+├── flows/: AuthCodeValidator, AuthCodeHandler
+├── registry/: FlowRegistry impl
+├── persistence/: AuthorizationCodeRepo impls
+└── security/: RandomCodeGenerator
+
+-----------------------------------------------------------------------------------------------------------
+
+🗺 The mental map
+Think of it as four concentric rings:
+
+1. Domain → Your business language and rules (pure Go, no HTTP/DB)
+2. Application → Orchestrates use cases, coordinates domain objects
+3. Infrastructure → Implements technical details (DB, crypto, registries)
+4. Interface → Talks to the outside world (HTTP handlers, CLI, gRPC)
+
+
+/authorize
+
+- Domain Layer (internal/domain/oauth2/)
+
+* Entities / Value Objects
+* Interfaces
+* Business Rules
+
+- Application Layer (internal/application/oauth2/)
+
+* Use case services
+
+- AuthorizeService -> orchestrate the /authorize flow
+1. Validate the request
+2. Load client
+3. Validate redirect URI
+4. Resolve AuthorizeFlow from FlowRegistry
+5. Call Flows validator
+6. Call Flows handler
+
+- Flow contracts
+1. AuthorizeValidator interface
+2. AuthorizeHandler interface
+3. AuthorizeFlow struct { Validator, Handler }
+4. FlowRegistry interface -> Get(reponseType) (AuthorizeFlow, error)
+
+
+- Infrastructure Layer
+
+* Flow implementations (internal/infrastructure/oauth2/flows/)
+* Flow registry (internal/infrastructure/oauth2/registry/)
+* Persistence (internal/infrastructure/oauth2/persistence/)
+* Security utils (internal/infrastructure/security/)
+
+- Interface Layer (internal/interface/http/oauth2/)
+
+* HTTP handlers
+* Middleware
+
+- How Delegation fits in
+
+* Delegation domain: Delegation entity, DelegationRepo
+* Delegation application: DelegationService (EnsureConsent, GetDelegation)
+* AuthCodeHandler (infrastructure, part of "code" flow) calls DelegationService before issuing a code.
+
+
+

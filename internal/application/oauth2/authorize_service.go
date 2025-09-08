@@ -15,7 +15,7 @@ type AuthorizationService interface {
 }
 
 type AuthorizeServiceImpl struct {
-	clients   oauth2client.Repository
+	clients   oauth2client.ClientRepository
 	flows     FlowRegistry
 	authCodes dom.AuthorizationCodeRepo
 }

@@ -9,13 +9,13 @@ import (
 
 type TokenService struct {
 	codeRepo      CodeRepository
-	clientRepo    client.Repository
+	clientRepo    client.ClientRepository
 	delegationSvc delegation.DelegationService
 	jwtIssuer     JWTIssuer
 	refreshRepo   RefreshTokenRepository
 }
 
-func NewTokenService(codeRepo CodeRepository, clientRepo client.Repository, delegationSvc delegation.DelegationService, jwtIssuer JWTIssuer, refreshRepo RefreshTokenRepository) *TokenService {
+func NewTokenService(codeRepo CodeRepository, clientRepo client.ClientRepository, delegationSvc delegation.DelegationService, jwtIssuer JWTIssuer, refreshRepo RefreshTokenRepository) *TokenService {
 	return &TokenService{
 		codeRepo:      codeRepo,
 		clientRepo:    clientRepo,

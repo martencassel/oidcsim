@@ -1,4 +1,4 @@
-package oauth2
+package http
 
 import (
 	"net/http"
@@ -10,6 +10,7 @@ import (
 	authapp "github.com/martencassel/oidcsim/internal/application/authentication"
 	delegationapp "github.com/martencassel/oidcsim/internal/application/delegation"
 	oauth2app "github.com/martencassel/oidcsim/internal/application/oauth2"
+	"github.com/martencassel/oidcsim/internal/application/oidc"
 	"github.com/martencassel/oidcsim/internal/application/session"
 	"github.com/martencassel/oidcsim/internal/domain/oauth2"
 	"github.com/martencassel/oidcsim/internal/interface/http/dto"
@@ -34,10 +35,11 @@ Domain types: Handlers work with domain value objects, not DTOs from persistence
 */
 
 type Handler struct {
-	Sessions      session.SessionManager // interface for session read/write
-	AuthSvc       authapp.AuthService
-	AuthorizeSvc  oauth2app.AuthorizationService
-	DelegationSvc delegationapp.DelegationService
+	UserInfoAppService oidc.UserInfoAppService
+	Sessions           session.SessionManager // interface for session read/write
+	AuthSvc            authapp.AuthService
+	AuthorizeSvc       oauth2app.AuthorizationService
+	DelegationSvc      delegationapp.DelegationService
 }
 
 func (h *Handler) Authorize(g *gin.Context) {

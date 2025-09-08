@@ -66,4 +66,4 @@ func (r *inMemoryClientRepo) Save(client domain.Client) error {
 	return nil
 }
 
-var _ domain.Repository = (*inMemoryClientRepo)(nil)
+var _ domain.ClientRepository = (*inMemoryClientRepo)(nil)

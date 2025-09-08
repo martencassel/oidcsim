@@ -4,9 +4,11 @@ type ClientID string
 
 // Client entity + redirect URI validation
 type Client struct {
-	ID           string
-	RedirectURIs []string
-	Secret       string
+	ID            string
+	RedirectURIs  []string
+	Secret        string
+	AllowedScopes []string
+	AllowedClaims []string // optional, if empty all claims are allowed
 }
 
 func (c Client) IsRedirectURIMatching(uri string) bool {

@@ -2,6 +2,8 @@ package dto
 
 import "github.com/gin-gonic/gin"
 
+// AuthorizeRequest represents the parameters for an OAuth2 / OIDC authorization request.
+// See: https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
 type AuthorizeRequest struct {
 	ResponseType        string `form:"response_type" query:"response_type"`
 	ClientID            string `form:"client_id" query:"client_id"`
@@ -34,10 +36,14 @@ func (ar *AuthorizeRequest) Bind(c *gin.Context) error {
 	return nil
 }
 
+// AuthorizeResponse represents a successful authorization response.
+// See: https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
 type AuthorizeResponse struct {
 	RedirectURI string
 }
 
+// AuthorizeError represents an error response for the authorization endpoint.
+// See: https://openid.net/specs/openid-connect-core-1_0.html#AuthError
 type AuthorizeErrorRedirect struct {
 	RedirectURI      string
 	State            string

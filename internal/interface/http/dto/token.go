@@ -6,6 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TokenRequest represents the parameters for an OAuth2 token request.
+// See: https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.3 and
+// https://datatracker.ietf.org/doc/html/rfc6749#section-6
 type TokenRequest struct {
 	GrantType string `form:"grant_type" json:"grant_type" binding:"required"` // e.g. "authorization_code", "refresh_token"
 
@@ -32,6 +35,8 @@ func (tr *TokenRequest) Bind(c *gin.Context) error {
 	return c.ShouldBind(tr)
 }
 
+// TokenResponse represents the JSON response from the token endpoint
+// See: https://datatracker.ietf.org/doc/html/rfc6749#section-5.1
 type TokenResponse struct {
 	AccessToken  string `json:"access_token"`            // The issued access token
 	TokenType    string `json:"token_type"`              // Usually "Bearer"

@@ -1,5 +1,7 @@
 package dto
 
+// ClientRegistrationRequest represents the parameters for a dynamic client registration request.
+// See: https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
 type ClientRegistrationRequest struct {
 	RedirectURIs            []string `json:"redirect_uris"`
 	TokenEndpointAuthMethod string   `json:"token_endpoint_auth_method,omitempty"`
@@ -10,6 +12,8 @@ type ClientRegistrationRequest struct {
 	Scope                   string   `json:"scope,omitempty"`
 }
 
+// ClientRegistrationResponse represents the response from a dynamic client registration request.
+// See: https://openid.net/specs/openid-connect-registration-1_0.html#ClientRegistrationResponse
 type ClientRegistrationResponse struct {
 	ClientID                string   `json:"client_id"`
 	ClientSecret            string   `json:"client_secret,omitempty"`

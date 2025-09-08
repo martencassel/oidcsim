@@ -1,9 +1,15 @@
 package dto
 
+// For /jwks endpoint (RFC 7517).
+
+// JWKSResponse represents a JSON Web Key Set (JWKS).
+// See: https://tools.ietf.org/html/rfc7517#section-5
 type JWKSResponse struct {
 	Keys []JWK `json:"keys"`
 }
 
+// JWK represents a single JSON Web Key.
+// See: https://tools.ietf.org/html/rfc7517
 type JWK struct {
 	Kty string `json:"kty"`
 	Use string `json:"use,omitempty"`

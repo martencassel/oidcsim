@@ -1,5 +1,7 @@
 package dto
 
+// DiscoveryDocument represents the OpenID Connect Discovery Document.
+// See: https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
 type DiscoveryDocument struct {
 	Issuer                           string   `json:"issuer"`
 	AuthorizationEndpoint            string   `json:"authorization_endpoint"`

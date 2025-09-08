@@ -4,10 +4,14 @@ import "github.com/gin-gonic/gin"
 
 // For /introspect endpoint (RFC 7662).
 
+// IntrospectionRequest represents the parameters for an OAuth2 token introspection request.
+// See: https://datatracker.ietf.org/doc/html/rfc7662#section-2.1
 type IntrospectionRequest struct {
 	Token string `form:"token" binding:"required"`
 }
 
+// IntrospectionResponse represents a successful response from the token introspection endpoint.
+// See: https://datatracker.ietf.org/doc/html/rfc7662#section-2.2
 type IntrospectionResponse struct {
 	Active   bool   `json:"active"`
 	Scope    string `json:"scope,omitempty"`

@@ -1,5 +1,9 @@
 package dto
 
+// For /token endpoint with "urn:ietf:params:oauth:grant-type:token-exchange" grant type (RFC 8693).
+
+// TokenExchangeRequest represents the parameters for a token exchange request.
+// See: https://datatracker.ietf.org/doc/html/rfc8693#section-2.1
 type TokenExchangeRequest struct {
 	SubjectToken       string `form:"subject_token" binding:"required"`
 	SubjectTokenType   string `form:"subject_token_type" binding:"required"`
@@ -11,6 +15,8 @@ type TokenExchangeRequest struct {
 	RequestedTokenType string `form:"requested_token_type,omitempty"`
 }
 
+// TokenExchangeResponse represents a successful response from the token exchange endpoint.
+// See: https://datatracker.ietf.org/doc/html/rfc8693#section-2.2
 type TokenExchangeResponse struct {
 	AccessToken     string `json:"access_token"`
 	IssuedTokenType string `json:"issued_token_type"`

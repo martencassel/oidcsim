@@ -13,7 +13,16 @@ type Delegation struct {
 	ClientID  string
 	Scopes    []string
 	CreatedAt time.Time
+	RevokedAt *time.Time
+	ExpiresAt *time.Time
 }
+
+// Future
+// ExpiresAt   time.Time       // Optional expiry for time-limited consent
+// RevokedAt   *time.Time      // If revoked, timestamp of revocation
+// Claims      map[string]any  // Optional claims granted (e.g. email, profile)
+// Remember    bool            // Whether user chose "remember this decision"
+// PromptedAt  time.Time       // When the user was last shown a consent screen
 
 func NewDelegation(userID, clientID string, scopes []string) (Delegation, error) {
 	if userID == "" || clientID == "" {
@@ -29,4 +38,12 @@ func NewDelegation(userID, clientID string, scopes []string) (Delegation, error)
 		Scopes:    scopes,
 		CreatedAt: time.Now().UTC(),
 	}, nil
+}
+
+func (d Delegation) IsRevoked() bool {
+	return d.RevokedAt != nil
+}
+
+func (d Delegation) IsExpired(now time.Time) bool {
+	return d.ExpiresAt != nil && now.After(*d.ExpiresAt)
 }

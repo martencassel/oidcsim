@@ -1,4 +1,4 @@
-package authn
+package authentication
 
 const (
 	MethodPassword AuthMethod = "password"

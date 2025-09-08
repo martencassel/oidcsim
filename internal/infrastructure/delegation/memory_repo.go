@@ -1,4 +1,4 @@
-package delegationinfra
+package delegation
 
 import (
 	"context"
@@ -40,6 +40,17 @@ func (r *MemoryRepo) Delete(_ context.Context, userID, clientID string) error {
 	defer r.mu.Unlock()
 	delete(r.data, userID+"|"+clientID)
 	return nil
+}
+
+// FindByID implements the Repository interface.
+// Assumes the ID is in the format "userID|clientID".
+func (r *MemoryRepo) FindByID(_ context.Context, id string) (*delegation.Delegation, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if d, ok := r.data[id]; ok {
+		return &d, nil
+	}
+	return nil, nil
 }
 
 // Ensure interface compliance

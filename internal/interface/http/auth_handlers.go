@@ -27,7 +27,6 @@ import (
 
 */
 
-
 /*
 
 SessionManager: Abstracts cookie + server‑side state.
@@ -38,22 +37,22 @@ Domain types: Handlers work with domain value objects, not DTOs from persistence
 */
 
 type Handler struct {
-	sessions      session.SessionManager // interface for session read/write
+	Sessions      session.SessionManager // interface for session read/write
 	AuthSvc       authapp.AuthService
 	AuthorizeSvc  oauth2app.AuthorizeService
 	DelegationSvc delegationapp.DelegationService
 }
 
 func (h *Handler) Authorize(g *gin.Context) {
+	// Step 1: Bind and validate incoming request
 	ctx := g.Request.Context()
-	// 1. Parse query parameters into a DTO
 	var dtoReq dto.AuthorizeRequest
 	if err := dtoReq.Bind(g); err != nil {
 		http.Error(g.Writer, "invalid request", http.StatusBadRequest)
 		return
 	}
+	// Step 2: Translate DTO to domain model
 	scopes := fromScopeString(dtoReq.Scope)
-	// 2. Map DTO -> domain.AuthorizeRequest (enforce basic invariants)
 	domReq := oauth2.AuthorizeRequest{
 		ResponseType:        dtoReq.ResponseType,
 		ClientID:            dtoReq.ClientID,
@@ -66,29 +65,28 @@ func (h *Handler) Authorize(g *gin.Context) {
 	}
 	log.Infof("domReq: %v", domReq)
 
-	// from cookie/session middleware
+	// Step 3: Retrieve session ID from middleware
 	sid, _ := middleware.SessionIDFromContext(g.Request.Context())
 
-	// Check current authentication context
+	// Step 4: Check current authentication context
 	authCtx, ok, _ := h.AuthSvc.Current(g.Request.Context(), sid)
-
 	if !ok || !authCtx.IsValidFor(domReq) {
-		_ = h.sessions.SaveAuthorizeRequest(sid, dtoReq)
-		// Redirect to login flow
+		// Save request and redirect to login
+		_ = h.Sessions.SaveAuthorizeRequest(sid, dtoReq)
 		g.Redirect(http.StatusFound, "/login")
 		return
 	}
-	// 5. Already authenticated → check consent/delegation
+	// Step 5: Ensure consent (currently auto-approved)
 	consentResult, err := h.DelegationSvc.EnsureConsent(ctx, authCtx.SubjectID, domReq.ClientID, domReq.Scope)
 	if err != nil {
 		http.Error(g.Writer, err.Error(), http.StatusBadRequest)
 		return
 	}
-	d := delegationapp.ConsentStatus(consentResult)
+	// Step 6: Handle consent decision
+	d := delegationapp.ConsentStatus(consentResult.Decision)
 	switch d {
 	case delegationapp.ConsentRequired:
-		// Save request and redirect to consent UI
-		_ = h.sessions.SaveAuthorizeRequest(sid, dtoReq)
+		_ = h.Sessions.SaveAuthorizeRequest(sid, dtoReq)
 		g.Redirect(http.StatusFound, "/consent")
 		return
 	case delegationapp.ConsentDenied:
@@ -100,13 +98,13 @@ func (h *Handler) Authorize(g *gin.Context) {
 		http.Error(g.Writer, "internal error", http.StatusInternalServerError)
 		return
 	}
+	// Step 7: Issue authorization code and redirect
 	user := oauth2.User{ID: authCtx.SubjectID}
 	redirectURL, err := h.AuthorizeSvc.HandleAuthorize(ctx, domReq, user)
 	if err != nil {
 		http.Error(g.Writer, err.Error(), http.StatusBadRequest)
 		return
 	}
-	// 6. Redirect back to client
 	g.Redirect(http.StatusFound, redirectURL)
 }
 

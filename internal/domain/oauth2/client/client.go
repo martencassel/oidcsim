@@ -1,9 +1,10 @@
-package oauth2
+package client
 
 // Client entity + redirect URI validation
 type Client struct {
 	ID           string
 	RedirectURIs []string
+	Secret       string
 }
 
 func (c Client) IsRedirectURIMatching(uri string) bool {

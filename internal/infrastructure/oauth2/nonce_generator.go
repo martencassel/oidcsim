@@ -1,4 +1,4 @@
-package infraoauth2
+package oauth2
 
 type NonceGenerator struct {
 }

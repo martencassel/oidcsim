@@ -1,4 +1,4 @@
-package delegationinfra
+package delegation
 
 import (
 	"context"
@@ -64,6 +64,27 @@ func splitScopes(s string) []string {
 
 func joinScopes(scopes []string) string {
 	return strings.Join(scopes, " ")
+}
+
+// FindByID retrieves a delegation by its ID.
+func (r *PostgresRepo) FindByID(ctx context.Context, id string) (*delegation.Delegation, error) {
+	const q = `
+		SELECT id, user_id, client_id, scopes, created_at
+		FROM delegations
+		WHERE id = $1
+		LIMIT 1`
+	var d delegation.Delegation
+	var scopes string
+	err := r.db.QueryRowContext(ctx, q, id).
+		Scan(&d.ID, &d.UserID, &d.ClientID, &scopes, &d.CreatedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	d.Scopes = splitScopes(scopes)
+	return &d, nil
 }
 
 var _ delegationapp.Repository = (*PostgresRepo)(nil)

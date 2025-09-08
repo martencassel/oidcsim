@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/martencassel/oidcsim/internal/domain/oauth2"
+	oauth2client "github.com/martencassel/oidcsim/internal/domain/oauth2/client"
 	"github.com/martencassel/oidcsim/internal/infrastructure/security"
 )
 
@@ -14,7 +15,7 @@ type AuthorizationCodeRepo interface {
 }
 
 type ClientRepo interface {
-	Get(ctx context.Context, clientID string) (oauth2.Client, error)
+	Get(ctx context.Context, clientID string) (oauth2client.Client, error)
 }
 
 type Clock interface {

@@ -1,4 +1,4 @@
-package oauth2app
+package oauth2
 
 import (
 	"context"

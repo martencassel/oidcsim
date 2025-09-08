@@ -1,10 +1,11 @@
-package oauth2app
+package oauth2
 
 import (
 	"context"
 	"time"
 
 	"github.com/martencassel/oidcsim/internal/domain/oauth2"
+	oauth2client "github.com/martencassel/oidcsim/internal/domain/oauth2/client"
 )
 
 type AuthorizationCodeRepo interface {
@@ -19,7 +20,7 @@ type TokenService interface {
 }
 
 type ClientRepo interface {
-	Get(ctx context.Context, clientID string) (*oauth2.Client, error)
+	Get(ctx context.Context, clientID string) (*oauth2client.Client, error)
 }
 
 type Clock interface {

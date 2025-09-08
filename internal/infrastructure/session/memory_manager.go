@@ -193,3 +193,5 @@ func (m *memorySessionManager) ClearAuthorizeRequest(sid string) error {
 	}
 	return nil
 }
+
+

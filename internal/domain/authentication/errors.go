@@ -1,4 +1,4 @@
-package authn
+package authentication
 
 // Domain Errors for authentication package
 import "errors"

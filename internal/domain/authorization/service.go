@@ -1,1 +1,1 @@
-package authz
+package authorization

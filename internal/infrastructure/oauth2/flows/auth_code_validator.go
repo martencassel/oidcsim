@@ -1,4 +1,4 @@
-package infraoauth2flows
+package flows
 
 import (
 	"context"

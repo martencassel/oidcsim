@@ -1,4 +1,4 @@
-package delegationapp
+package delegation
 
 type ConsentStatus string
 

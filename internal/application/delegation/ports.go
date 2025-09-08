@@ -1,4 +1,4 @@
-package delegationapp
+package delegation
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 
 type Repository interface {
 	FindByUserAndClient(ctx context.Context, userID, clientID string) (*delegation.Delegation, error)
+	FindByID(ctx context.Context, delegationID string) (*delegation.Delegation, error)
 	Save(ctx context.Context, d delegation.Delegation) error
 	Delete(ctx context.Context, userID, clientID string) error
 }

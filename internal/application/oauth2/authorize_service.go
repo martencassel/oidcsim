@@ -1,28 +1,26 @@
-package oauth2app
+package oauth2
 
 import (
 	"context"
 
-	delegationapp "github.com/martencassel/oidcsim/internal/application/delegation"
+	"github.com/martencassel/oidcsim/internal/domain/authorization"
 	dom "github.com/martencassel/oidcsim/internal/domain/oauth2"
+	oauth2client "github.com/martencassel/oidcsim/internal/domain/oauth2/client"
 )
 
 // uses FlowRegistry to get an AuthorizeFlow
 
 type AuthorizeService struct {
-	clients   dom.ClientRepo
+	clients   oauth2client.Repository
 	flows     FlowRegistry
 	authCodes dom.AuthorizationCodeRepo
 }
 
-func NewAuthorizeService(delegationSvc delegationapp.DelegationService, flows FlowRegistry) *AuthorizeService {
+func NewAuthorizeService(delegationSvc authorization.DelegationService, flows FlowRegistry) *AuthorizeService {
 	return &AuthorizeService{}
 }
 
-// HandleAuthorize handles the OAuth2 /authorize endpoint (GET)
 func (s *AuthorizeService) HandleAuthorize(ctx context.Context, req dom.AuthorizeRequest, user dom.User) (string, error) {
-	// Consent/delegation check happens here first...
-	// Then resolve flow:
 	flow := s.flows.Resolve(req.ResponseType)
 	if err := flow.Validate(ctx, req); err != nil {
 		return "", err

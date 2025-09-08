@@ -1,6 +1,6 @@
 package authentication
 
-type AuthenticatorRegistry interface {
-	Get(method AuthMethod) (Authenticator, bool)
-	Register(authenticator Authenticator)
-}
+// type AuthenticatorRegistry interface {
+// 	Get(method AuthMethod) (Authenticator, bool)
+// 	Register(authenticator Authenticator)
+// }

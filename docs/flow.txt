@@ -1,0 +1,160 @@
+GET /login
+Cookie: session_id=sess-abc123
+→ Server loads session sess-abc123
+→ Renders password form
+
+func (h *Handler) LoginStart(c *gin.Context) {
+    ctx := c.Request.Context()
+    sessionID := middleware.SessionIDFromContext(ctx)
+    clientID := h.Sessions.GetPendingClientID(sessionID)
+
+    // Start flow
+    spec, _ := h.AuthSvc.Initiate(ctx, clientID)
+    step := spec.Steps[0]
+
+    // Save flow to session
+    _ = h.Sessions.Save(AuthSession{
+        ID:        sessionID,
+        Flow:      spec.Steps,
+        Completed: []AuthMethod{},
+    })
+
+    // Render password form
+    ui, _ := h.AuthSvc.StartStep(ctx, sessionID, step.Method)
+    c.HTML(http.StatusOK, "login_step.tmpl", gin.H{
+        "method": step.Method,
+        "fields": ui.Fields,
+    })
+}
+
+POST /login
+Cookie: session_id=sess-abc123
+Form: username=alice, password=secret
+→ Server updates session: subjectID=user123
+→ Renders OTP form
+
+func (h *Handler) LoginStep(c *gin.Context) {
+    ctx := c.Request.Context()
+    sessionID := middleware.SessionIDFromContext(ctx)
+
+    method := c.PostForm("method")
+    inputs := map[string]string{}
+    for k := range c.Request.PostForm {
+        inputs[k] = c.PostForm(k)
+    }
+
+    done, err := h.AuthSvc.CompleteStep(ctx, sessionID, AuthMethod(method), inputs)
+    if err != nil {
+        c.HTML(http.StatusUnauthorized, "error.tmpl", gin.H{"error": err.Error()})
+        return
+    }
+
+    if !done {
+        // Next step: OTP
+        next := h.AuthSvc.NextStep(sessionID)
+        ui, _ := h.AuthSvc.StartStep(ctx, sessionID, next.Method)
+        c.HTML(http.StatusOK, "login_step.tmpl", gin.H{
+            "method": next.Method,
+            "fields": ui.Fields,
+        })
+        return
+    }
+
+    // If done, redirect to /authorize
+    req := h.Sessions.GetAuthorizeRequest(sessionID)
+    c.Redirect(http.StatusFound, "/authorize?"+req.Encode())
+}
+
+POST /login
+Cookie: session_id=sess-abc123
+Form: otp=123456
+→ Server marks session authenticated
+→ Redirects to /authorize
+
+// Inside LoginStep handler
+
+if method == "otp" {
+    inputs := map[string]string{"otp": c.PostForm("otp")}
+    done, err := h.AuthSvc.CompleteStep(ctx, sessionID, MethodOTP, inputs)
+    if err != nil {
+        c.HTML(http.StatusUnauthorized, "error.tmpl", gin.H{"error": err.Error()})
+        return
+    }
+
+    if done {
+        // Marked authenticated inside CompleteStep
+        req := h.Sessions.GetAuthorizeRequest(sessionID)
+        c.Redirect(http.StatusFound, "/authorize?"+req.Encode())
+        return
+    }
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login</title>
+</head>
+<body>
+  <h2>Login - Step: {{ .method }}</h2>
+  <form method="POST" action="/login">
+    <input type="hidden" name="method" value="{{ .method }}">
+
+    {{ range .fields }}
+      <div>
+        <label for="{{ . }}">{{ . | title }}</label>
+        <input type="text" name="{{ . }}" id="{{ . }}" required>
+      </div>
+    {{ end }}
+
+    <button type="submit">Continue</button>
+  </form>
+</body>
+</html>
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login Error</title>
+</head>
+<body>
+  <h2>Authentication Failed</h2>
+  <p style="color: red;">{{ .error }}</p>
+  <a href="/login">Try again</a>
+</body>
+</html>
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Consent</title>
+</head>
+<body>
+  <h2>App {{ .clientName }} is requesting access</h2>
+  <p>The following permissions are requested:</p>
+  <ul>
+    {{ range .scopes }}
+      <li>{{ . }}</li>
+    {{ end }}
+  </ul>
+  <form method="POST" action="/consent">
+    <button name="decision" value="approve">Approve</button>
+    <button name="decision" value="deny">Deny</button>
+  </form>
+</body>
+</html>
+
+
+c.HTML(http.StatusOK, "login_step.tmpl", gin.H{
+  "method": step.Method,
+  "fields": ui.Fields,
+})
+
+
+r := gin.Default()
+r.LoadHTMLGlob("templates/*.tmpl")
+

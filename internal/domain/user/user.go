@@ -9,4 +9,6 @@ type User struct {
 	PrefferedUsername string
 	Email             string
 	EmailVerified     bool
+	UserName          string
+	Password          string // In real life, passwords should be hashed!
 }

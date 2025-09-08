@@ -1,7 +1,7 @@
 package authentication
 
-import "context"
+// import "context"
 
-type Service interface {
-	Authenticate(ctx context.Context, req AuthRequest) (AuthResult, error)
-}
+// type Service interface {
+// 	Authenticate(ctx context.Context, req AuthRequest) (AuthResult, error)
+// }

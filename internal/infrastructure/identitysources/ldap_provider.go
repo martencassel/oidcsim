@@ -3,7 +3,6 @@ package identitysources
 import (
 	"context"
 
-	authn "github.com/martencassel/oidcsim/internal/domain/authentication"
 	identitysourcesdomain "github.com/martencassel/oidcsim/internal/domain/identitysources"
 )
 
@@ -19,8 +18,8 @@ func NewLDAPProvider(settings map[string]interface{}) identitysourcesdomain.Iden
 }
 
 // Authenticate implements IdentitySource
-func (l *ldapProviderImpl) Authenticate(username, password string) (authn.SubjectID, []identitysourcesdomain.Claim, error) {
-	return "", nil, nil
+func (l *ldapProviderImpl) Authenticate(username, password string) (string, *identitysourcesdomain.SubjectID, []identitysourcesdomain.Claim, error) {
+	return "", nil, nil, nil
 }
 
 func (l *ldapProviderImpl) GetClaims(ctx context.Context, subjectID identitysourcesdomain.SubjectID) (map[string]interface{}, error) {

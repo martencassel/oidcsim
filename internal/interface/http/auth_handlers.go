@@ -7,11 +7,11 @@ import (
 	// logrus
 	log "github.com/sirupsen/logrus"
 
-	authapp "github.com/martencassel/oidcsim/internal/application/authentication"
 	delegationapp "github.com/martencassel/oidcsim/internal/application/delegation"
 	oauth2app "github.com/martencassel/oidcsim/internal/application/oauth2"
 	"github.com/martencassel/oidcsim/internal/application/oidc"
 	"github.com/martencassel/oidcsim/internal/application/session"
+	"github.com/martencassel/oidcsim/internal/domain/authentication"
 	"github.com/martencassel/oidcsim/internal/domain/oauth2"
 	"github.com/martencassel/oidcsim/internal/interface/http/dto"
 	middleware "github.com/martencassel/oidcsim/internal/interface/http/middleware"
@@ -37,7 +37,7 @@ Domain types: Handlers work with domain value objects, not DTOs from persistence
 type Handler struct {
 	UserInfoAppService oidc.UserInfoAppService
 	Sessions           session.SessionManager // interface for session read/write
-	AuthSvc            authapp.AuthService
+	AuthSvc            authentication.DefaultAuthService
 	AuthorizeSvc       oauth2app.AuthorizationService
 	DelegationSvc      delegationapp.DelegationService
 }

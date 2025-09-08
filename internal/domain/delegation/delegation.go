@@ -7,6 +7,12 @@ import (
 	"github.com/google/uuid"
 )
 
+type DelegationID string
+type ClientID string
+type SubjectID string
+type Audience string
+type Scope string
+
 type Delegation struct {
 	ID        string
 	UserID    string

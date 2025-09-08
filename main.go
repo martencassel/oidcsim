@@ -68,7 +68,6 @@ func main() {
 	mux := gin.Default()
 
 	sessionManager := infrasession.NewMemorySessionManager("oidcsim_session", session.WithAllowInsecure())
-
 	authHandler := &oauth2.Handler{}
 	authHandler.DelegationSvc = delegationapp.NewDelegationService(delegRepo)
 	authHandler.Sessions = sessionManager

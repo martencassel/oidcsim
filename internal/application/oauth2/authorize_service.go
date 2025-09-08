@@ -3,7 +3,7 @@ package oauth2
 import (
 	"context"
 
-	"github.com/martencassel/oidcsim/internal/domain/authorization"
+	delegationapp "github.com/martencassel/oidcsim/internal/application/delegation"
 	dom "github.com/martencassel/oidcsim/internal/domain/oauth2"
 	oauth2client "github.com/martencassel/oidcsim/internal/domain/oauth2/client"
 )
@@ -20,7 +20,7 @@ type AuthorizeServiceImpl struct {
 	authCodes dom.AuthorizationCodeRepo
 }
 
-func NewAuthorizeService(delegationSvc authorization.DelegationService, flows FlowRegistry) *AuthorizeServiceImpl {
+func NewAuthorizeService(delegationSvc delegationapp.DelegationService, flows FlowRegistry) *AuthorizeServiceImpl {
 	return &AuthorizeServiceImpl{}
 }
 

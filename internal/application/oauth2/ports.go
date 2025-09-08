@@ -14,11 +14,6 @@ type AuthorizationCodeRepo interface {
 	Delete(ctx context.Context, codeValue string) error
 }
 
-type TokenService interface {
-	MintAccessToken(ctx context.Context, subjectID, clientID string, scopes []string) (string, error)
-	MintIDToken(ctx context.Context, subjectID, clientID string, nonce string) (string, error)
-}
-
 type ClientRepo interface {
 	Get(ctx context.Context, clientID string) (*oauth2client.Client, error)
 }
@@ -29,4 +24,19 @@ type Clock interface {
 
 type NonceGenerator interface {
 	Generate() (string, error)
+}
+
+// defines CodeRepository
+type CodeRepository interface {
+	// methods for code repository
+}
+
+// defines JWTIssuer
+type JWTIssuer interface {
+	// methods for JWT issuer
+}
+
+// defines RefreshTokenRepository
+type RefreshTokenRepository interface {
+	// methods for refresh token repository
 }

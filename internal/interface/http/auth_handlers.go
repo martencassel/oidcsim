@@ -17,14 +17,12 @@ import (
 )
 
 /*
-
 1. Parse -> map to domain request
 2. Check authentication context
 3. If not logged in -> save request + redirect to /login
 4. If logged in -> check consent / delegation
 5. Branch on consent decision
 6. If consent OK -> run the authorization flow and redirect to client
-
 */
 
 /*
@@ -32,7 +30,6 @@ import (
 SessionManager: Abstracts cookie + server‑side state.
 TemplateRenderer: Abstracts HTML rendering (could be Go templates, React SSR, etc.).
 Domain types: Handlers work with domain value objects, not DTOs from persistence.
-
 
 */
 
@@ -83,7 +80,7 @@ func (h *Handler) Authorize(g *gin.Context) {
 		return
 	}
 	// Step 6: Handle consent decision
-	d := delegationapp.ConsentStatus(consentResult.Decision)
+	d := delegationapp.ConsentStatus(rune(consentResult.Decision))
 	switch d {
 	case delegationapp.ConsentRequired:
 		_ = h.Sessions.SaveAuthorizeRequest(sid, dtoReq)

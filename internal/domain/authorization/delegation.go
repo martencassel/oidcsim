@@ -1,21 +1,17 @@
 package authorization
 
 import (
-	"context"
-	"crypto/sha256"
-	"crypto/subtle"
-	"encoding/base64"
-	"errors"
 	"net"
-	"strings"
 	"time"
 
-	uuid "github.com/google/uuid"
-	"github.com/martencassel/oidcsim/internal/domain"
+	"github.com/martencassel/oidcsim/internal/domain/delegation"
+	"github.com/martencassel/oidcsim/internal/domain/oauth2/client"
 )
 
+type SubjectID string
+
 type ConsentInput struct {
-	Client    ClientID
+	Client    client.ClientID
 	Subject   SubjectID
 	Scopes    []string
 	NotBefore time.Time
@@ -26,7 +22,7 @@ type ConsentInput struct {
 }
 
 type ConsentResult struct {
-	DelegationID DelegationID
+	DelegationID delegation.DelegationID
 }
 
 type ExchangeInput struct {
@@ -37,6 +33,14 @@ type ExchangeInput struct {
 	PKCEVerifier string // if PKCE is used
 	Audience     string
 	CallerIP     net.IP
+}
+
+type Token struct {
+	AccessToken  string
+	RefreshToken string
+	IDToken      string
+	ExpiresIn    int64    // seconds
+	Scopes       []string // granted scopes
 }
 
 type ExchangeResult struct {
@@ -50,38 +54,40 @@ const (
 	ConsentTypeAdmin ConsentType = "admin"
 )
 
-type SubjectSelector struct {
-	SubjectIDs []SubjectID // explicit list
-	GroupIDs   []string    // or group/org identifiers
-	AllUsers   bool
-}
+// type SubjectID string
 
-type DelegationService struct {
-	delegations DelegationRepo
-	codes       string
-	clients     ClientRepo
-	tokens      TokenIssuer2
-	now         func() time.Time
-	idTokens    domain.IDTokenIssuer
-}
+// type SubjectSelector struct {
+// 	SubjectIDs []SubjectID // explicit list
+// 	GroupIDs   []string    // or group/org identifiers
+// 	AllUsers   bool
+// }
 
-type IssueCodeInput struct {
-	DelegationID  DelegationID
-	Client        ClientID
-	RedirectURI   string
-	PKCEChallenge string        // optional
-	TTL           time.Duration // eg. 60s
-	Nonce         string        // optional
-}
+// type DelegationService struct {
+// 	delegations DelegationRepo
+// 	codes       string
+// 	clients     ClientRepo
+// 	tokens      TokenIssuer2
+// 	now         func() time.Time
+// 	idTokens    domain.IDTokenIssuer
+// }
 
-type IssueCodeResult struct {
-	CodeID string
-}
+// type IssueCodeInput struct {
+// 	DelegationID  DelegationID
+// 	Client        ClientID
+// 	RedirectURI   string
+// 	PKCEChallenge string        // optional
+// 	TTL           time.Duration // eg. 60s
+// 	Nonce         string        // optional
+// }
 
-func newID() string {
-	return "d_" + uuid.New().String()
-}
+// type IssueCodeResult struct {
+// 	CodeID string
+// }
 
+// func newID() string {
+// 	return "d_" + uuid.New().String()
+// }
+/*
 func (s *DelegationService) CreateDelegationFromConsent(ctx context.Context, in ConsentInput) (ConsentResult, error) {
 	requested := toScopeSet(in.Scopes)
 	if !s.clients.AllowsScopes(ctx, in.Client, requested) {
@@ -173,92 +179,92 @@ func (s *DelegationService) ExchangeCodeForTokens(ctx context.Context, in Exchan
 
 func (s *DelegationService) RevokeDelegation(ctx context.Context, id DelegationID) error {
 	return s.delegations.Revoke(ctx, id, s.now())
-}
+} */
 
 // verifyPKCE checks that the provided verifier matches the stored challenge.
-// method is usually "S256" or "plain".
-func verifyPKCE(storedChallenge, method, verifier string) bool {
-	switch strings.ToUpper(method) {
-	case "S256":
-		h := sha256.Sum256([]byte(verifier))
-		// Base64 URL encoding without padding
-		encoded := base64.RawURLEncoding.EncodeToString(h[:])
-		return subtleConstantTimeCompare(encoded, storedChallenge)
-	case "PLAIN":
-		return subtleConstantTimeCompare(verifier, storedChallenge)
-	default:
-		// Unknown method — fail closed
-		return false
-	}
-}
+// // method is usually "S256" or "plain".
+// func verifyPKCE(storedChallenge, method, verifier string) bool {
+// 	switch strings.ToUpper(method) {
+// 	case "S256":
+// 		h := sha256.Sum256([]byte(verifier))
+// 		// Base64 URL encoding without padding
+// 		encoded := base64.RawURLEncoding.EncodeToString(h[:])
+// 		return subtleConstantTimeCompare(encoded, storedChallenge)
+// 	case "PLAIN":
+// 		return subtleConstantTimeCompare(verifier, storedChallenge)
+// 	default:
+// 		// Unknown method — fail closed
+// 		return false
+// 	}
+// }
 
 // subtleConstantTimeCompare avoids timing attacks.
-func subtleConstantTimeCompare(a, b string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	// Use crypto/subtle for constant‑time compare
-	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
-}
+// func subtleConstantTimeCompare(a, b string) bool {
+// 	if len(a) != len(b) {
+// 		return false
+// 	}
+// 	// Use crypto/subtle for constant‑time compare
+// 	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
+// }
 
-func (s *DelegationService) IssueAuthorizationCode(ctx context.Context, in IssueCodeInput) (IssueCodeResult, error) {
-	d, err := s.delegations.FindByID(ctx, in.DelegationID)
-	if err != nil {
-		return IssueCodeResult{}, err
-	}
-	if d.Actor != in.Client {
-		return IssueCodeResult{}, ErrClientBindingFailed
-	}
-	now := s.now()
-	if err := d.IsActiveAt(now); err != nil {
-		return IssueCodeResult{}, err
-	}
-	if !s.clients.IsRedirectAllowed(ctx, in.Client, in.RedirectURI) {
-		return IssueCodeResult{}, errors.New("redirect uri not allowed")
-	}
-	// code := AuthorizationCode{
-	// 	ID:            AuthorizationCodeID(newOpaqueCode()), // short-lived, single-use
-	// 	DelegationID:  d.ID,
-	// 	ClientID:      in.Client,
-	// 	RedirectURI:   in.RedirectURI,
-	// 	PKCEChallenge: in.PKCEChallenge,
-	// 	ExpiresAt:     now.Add(in.TTL),
-	// 	CreatedAt:     now,
-	// 	Nonce:         in.Nonce,
-	// }
-	// if err := s.codes.Issue(ctx, code); err != nil {
-	// 	return IssueCodeResult{}, err
-	// }
-	// return IssueCodeResult{CodeID: code.ID}, nil
-	return IssueCodeResult{CodeID: ""}, nil
-}
+// func (s *DelegationService) IssueAuthorizationCode(ctx context.Context, in IssueCodeInput) (IssueCodeResult, error) {
+// 	d, err := s.delegations.FindByID(ctx, in.DelegationID)
+// 	if err != nil {
+// 		return IssueCodeResult{}, err
+// 	}
+// 	if d.Actor != in.Client {
+// 		return IssueCodeResult{}, ErrClientBindingFailed
+// 	}
+// 	now := s.now()
+// 	if err := d.IsActiveAt(now); err != nil {
+// 		return IssueCodeResult{}, err
+// 	}
+// 	if !s.clients.IsRedirectAllowed(ctx, in.Client, in.RedirectURI) {
+// 		return IssueCodeResult{}, errors.New("redirect uri not allowed")
+// 	}
+// 	// code := AuthorizationCode{
+// 	// 	ID:            AuthorizationCodeID(newOpaqueCode()), // short-lived, single-use
+// 	// 	DelegationID:  d.ID,
+// 	// 	ClientID:      in.Client,
+// 	// 	RedirectURI:   in.RedirectURI,
+// 	// 	PKCEChallenge: in.PKCEChallenge,
+// 	// 	ExpiresAt:     now.Add(in.TTL),
+// 	// 	CreatedAt:     now,
+// 	// 	Nonce:         in.Nonce,
+// 	// }
+// 	// if err := s.codes.Issue(ctx, code); err != nil {
+// 	// 	return IssueCodeResult{}, err
+// 	// }
+// 	// return IssueCodeResult{CodeID: code.ID}, nil
+// 	return IssueCodeResult{CodeID: ""}, nil
+// }
 
-func newOpaqueCode() string { return "c_" + newULID() }
+// func newOpaqueCode() string { return "c_" + newULID() }
 
-func newULID() string {
-	return uuid.NewString()
-}
+// func newULID() string {
+// 	return uuid.NewString()
+// }
 
-// Helpers
-func toScopeSet(in []string) ScopeSet {
-	out := make(ScopeSet, len(in))
-	for _, v := range in {
-		if v != "" {
-			out[Scope(v)] = struct{}{}
-		}
-	}
-	return out
-}
+// // Helpers
+// func toScopeSet(in []string) ScopeSet {
+// 	out := make(ScopeSet, len(in))
+// 	for _, v := range in {
+// 		if v != "" {
+// 			out[Scope(v)] = struct{}{}
+// 		}
+// 	}
+// 	return out
+// }
 
-func toAudiences(in []string) []Audience {
-	out := make([]Audience, 0, len(in))
-	for _, v := range in {
-		if v != "" {
-			out = append(out, Audience(v))
-		}
-	}
-	return out
-}
+// func toAudiences(in []string) []Audience {
+// 	out := make([]Audience, 0, len(in))
+// 	for _, v := range in {
+// 		if v != "" {
+// 			out = append(out, Audience(v))
+// 		}
+// 	}
+// 	return out
+// }
 
 // func NewDelegationService(d DelegationRepo, c AuthorizationCodeRepo, cl ClientRepo, t TokenIssuer2) *DelegationService {
 // 	return &DelegationService{
@@ -271,163 +277,135 @@ func toAudiences(in []string) []Audience {
 // 	}
 // }
 
-type DelegationID string
-type ClientID string
-type SubjectID string
-type Audience string
-type Scope string
+// type DelegationID string
+// type ClientID string
+// type SubjectID string
+// type Audience string
+// type Scope string
 
-var (
-	ErrInvalidDelegation   = errors.New("invalid delegation")
-	ErrExpiredDelegation   = errors.New("delegation expired")
-	ErrRevokedDelegation   = errors.New("delegation revoked")
-	ErrScopeNotAllowed     = errors.New("requested scopes exceed allowed set")
-	ErrAudienceNotAllowed  = errors.New("audience not allowed")
-	ErrIPNotAllowed        = errors.New("ip not allowed by constraints")
-	ErrCodeInvalid         = errors.New("authorization code invalid")
-	ErrCodeUsedOrExpired   = errors.New("authorization code used or expired")
-	ErrClientBindingFailed = errors.New("authorization code not bound to this client")
-)
+// var (
+// 	ErrInvalidDelegation   = errors.New("invalid delegation")
+// 	ErrExpiredDelegation   = errors.New("delegation expired")
+// 	ErrRevokedDelegation   = errors.New("delegation revoked")
+// 	ErrScopeNotAllowed     = errors.New("requested scopes exceed allowed set")
+// 	ErrAudienceNotAllowed  = errors.New("audience not allowed")
+// 	ErrIPNotAllowed        = errors.New("ip not allowed by constraints")
+// 	ErrCodeInvalid         = errors.New("authorization code invalid")
+// 	ErrCodeUsedOrExpired   = errors.New("authorization code used or expired")
+// 	ErrClientBindingFailed = errors.New("authorization code not bound to this client")
+// )
 
-type TimeWindow struct {
-	NotBefore time.Time
-	NotAfter  time.Time
-}
+// type TimeWindow struct {
+// 	NotBefore time.Time
+// 	NotAfter  time.Time
+// }
 
-func (tw TimeWindow) Contains(t time.Time) bool {
-	if !tw.NotBefore.IsZero() && t.Before(tw.NotBefore) {
-		return false
-	}
-	if !tw.NotAfter.IsZero() && t.After(tw.NotAfter) {
-		return false
-	}
-	return true
-}
+// func (tw TimeWindow) Contains(t time.Time) bool {
+// 	if !tw.NotBefore.IsZero() && t.Before(tw.NotBefore) {
+// 		return false
+// 	}
+// 	if !tw.NotAfter.IsZero() && t.After(tw.NotAfter) {
+// 		return false
+// 	}
+// 	return true
+// }
 
-type ScopeSet map[Scope]struct{}
+// type ScopeSet map[Scope]struct{}
 
-func NewScopeSet(scopes ...Scope) ScopeSet {
-	s := make(ScopeSet, len(scopes))
-	for _, sc := range scopes {
-		if sc != "" {
-			s[sc] = struct{}{}
-		}
-	}
-	return s
-}
+// func NewScopeSet(scopes ...Scope) ScopeSet {
+// 	s := make(ScopeSet, len(scopes))
+// 	for _, sc := range scopes {
+// 		if sc != "" {
+// 			s[sc] = struct{}{}
+// 		}
+// 	}
+// 	return s
+// }
 
-func (s ScopeSet) ContainsAll(other ScopeSet) bool {
-	for sc := range other {
-		if _, ok := s[sc]; !ok {
-			return false
-		}
-	}
-	return true
-}
+// func (s ScopeSet) ContainsAll(other ScopeSet) bool {
+// 	for sc := range other {
+// 		if _, ok := s[sc]; !ok {
+// 			return false
+// 		}
+// 	}
+// 	return true
+// }
 
-func (s ScopeSet) ToSlice() []string {
-	out := make([]string, 0, len(s))
-	for sc := range s {
-		out = append(out, string(sc))
-	}
-	return out
-}
+// func (s ScopeSet) ToSlice() []string {
+// 	out := make([]string, 0, len(s))
+// 	for sc := range s {
+// 		out = append(out, string(sc))
+// 	}
+// 	return out
+// }
 
-type Delegation struct {
-	ID          DelegationID
-	Actor       ClientID
-	Subject     SubjectID       // for user consent
-	Subjects    SubjectSelector // for admin consent to multiple users
-	Scopes      ScopeSet
-	Window      TimeWindow
-	Constraints Constraints
-	ConsentType ConsentType
-	GrantedBy   string // admin ID or system
-	RevokedAt   *time.Time
-	CreatedAt   time.Time
-}
+// type Delegation struct {
+// 	ID          DelegationID
+// 	Actor       ClientID
+// 	Subject     SubjectID       // for user consent
+// 	Subjects    SubjectSelector // for admin consent to multiple users
+// 	Scopes      ScopeSet
+// 	Window      TimeWindow
+// 	Constraints Constraints
+// 	ConsentType ConsentType
+// 	GrantedBy   string // admin ID or system
+// 	RevokedAt   *time.Time
+// 	CreatedAt   time.Time
+// }
 
-// Constraints narrow where and how the delegation is valid.
-type Constraints struct {
-	Audiences []Audience   // allowed token audiences
-	IPRanges  []*net.IPNet // allowed caller IPs
-	Resources []string     // resource-specific rules (e.g., doc:123, bucket:foo)
-}
+// // Constraints narrow where and how the delegation is valid.
+// type Constraints struct {
+// 	Audiences []Audience   // allowed token audiences
+// 	IPRanges  []*net.IPNet // allowed caller IPs
+// 	Resources []string     // resource-specific rules (e.g., doc:123, bucket:foo)
+// }
 
-func (c Constraints) AllowsAudience(a Audience) bool {
-	if len(c.Audiences) == 0 {
-		return true
-	}
-	for _, allowed := range c.Audiences {
-		if allowed == a {
-			return true
-		}
-	}
-	return false
-}
+// func (c Constraints) AllowsAudience(a Audience) bool {
+// 	if len(c.Audiences) == 0 {
+// 		return true
+// 	}
+// 	for _, allowed := range c.Audiences {
+// 		if allowed == a {
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }
 
-func (c Constraints) AllowsIP(ip net.IP) bool {
-	if len(c.IPRanges) == 0 || ip == nil {
-		return true
-	}
-	for _, cidr := range c.IPRanges {
-		if cidr.Contains(ip) {
-			return true
-		}
-	}
-	return false
-}
+// func (c Constraints) AllowsIP(ip net.IP) bool {
+// 	if len(c.IPRanges) == 0 || ip == nil {
+// 		return true
+// 	}
+// 	for _, cidr := range c.IPRanges {
+// 		if cidr.Contains(ip) {
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }
 
-func (d Delegation) IsActiveAt(t time.Time) error {
-	if d.RevokedAt != nil && !d.RevokedAt.After(t) {
-		return ErrRevokedDelegation
-	}
-	if !d.Window.Contains(t) {
-		return ErrExpiredDelegation
-	}
-	return nil
-}
+// func (d Delegation) IsActiveAt(t time.Time) error {
+// 	if d.RevokedAt != nil && !d.RevokedAt.After(t) {
+// 		return ErrRevokedDelegation
+// 	}
+// 	if !d.Window.Contains(t) {
+// 		return ErrExpiredDelegation
+// 	}
+// 	return nil
+// }
 
-func (d Delegation) Validate(aud Audience, ip net.IP, required ScopeSet, now time.Time) error {
-	if err := d.IsActiveAt(now); err != nil {
-		return err
-	}
-	if !d.Scopes.ContainsAll(required) {
-		return ErrScopeNotAllowed
-	}
-	if !d.Constraints.AllowsAudience(aud) {
-		return ErrAudienceNotAllowed
-	}
-	if !d.Constraints.AllowsIP(ip) {
-		return ErrIPNotAllowed
-	}
-	return nil
-}
-
-type DelegationRepo interface {
-	Save(ctx context.Context, d Delegation) error
-	FindByID(ctx context.Context, id DelegationID) (Delegation, error)
-	Revoke(ctx context.Context, id DelegationID, at time.Time) error
-}
-
-type Token struct {
-	AccessToken  string
-	RefreshToken string
-	IDToken      string
-	ExpiresIn    int // seconds
-	Scopes       []string
-}
-
-type TokenIssuer2 interface {
-	// MintAccess should embed subject, client, scopes, aud, and delegation id as claims.
-	MintAccess(ctx context.Context, d Delegation, aud Audience, now time.Time) (string, int, error)
-	// MintRefresh may bind to delegation and client; consider rotation.
-	MintRefresh(ctx context.Context, d Delegation, now time.Time) (string, error)
-}
-
-type ClientRepo interface {
-	// Used to validate client and its allowed scopes/redirect URIs if you enforce them here.
-	IsRedirectAllowed(ctx context.Context, client ClientID, redirectURI string) bool
-	AllowsScopes(ctx context.Context, client ClientID, scopes ScopeSet) bool
-	VerifySecret(ctx context.Context, client ClientID, secret string) bool
-}
+// func (d Delegation) Validate(aud Audience, ip net.IP, required ScopeSet, now time.Time) error {
+// 	if err := d.IsActiveAt(now); err != nil {
+// 		return err
+// 	}
+// 	if !d.Scopes.ContainsAll(required) {
+// 		return ErrScopeNotAllowed
+// 	}
+// 	if !d.Constraints.AllowsAudience(aud) {
+// 		return ErrAudienceNotAllowed
+// 	}
+// 	if !d.Constraints.AllowsIP(ip) {
+// 		return ErrIPNotAllowed
+// 	}
+// 	return nil
+// }

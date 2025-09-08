@@ -4,17 +4,19 @@ import (
 	"context"
 	"time"
 
-	authz "github.com/martencassel/oidcsim/internal/domain/authorization"
+	"github.com/martencassel/oidcsim/internal/domain/delegation"
 	infrasec "github.com/martencassel/oidcsim/internal/infrastructure/security"
 )
+
+type ClientID string
 
 type AuthorizationCodeID string
 
 type AuthorizationCode struct {
 	// Core Identifiers
 	ID           AuthorizationCodeID
-	DelegationID authz.DelegationID // Link to consent/delegation record
-	ClientID     authz.ClientID
+	DelegationID delegation.DelegationID // Link to consent/delegation record
+	ClientID     ClientID
 
 	// Protocol parameters
 	RedirectURI         string
@@ -69,8 +71,8 @@ func NewAuthorizationCode(gen infrasec.RandomStringGenerator, clientID, redirect
 	}
 	code := AuthorizationCode{
 		ID:                  AuthorizationCodeID(r),
-		DelegationID:        authz.DelegationID(""), // to be set when saving
-		ClientID:            authz.ClientID(clientID),
+		DelegationID:        delegation.DelegationID(""), // to be set when saving
+		ClientID:            ClientID(clientID),
 		RedirectURI:         redirectURI,
 		Scope:               scope,
 		State:               state,

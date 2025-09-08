@@ -1,5 +1,7 @@
 package client
 
+type ClientID string
+
 // Client entity + redirect URI validation
 type Client struct {
 	ID           string

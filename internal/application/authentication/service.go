@@ -9,7 +9,6 @@ import (
 
 type AuthService interface {
 	Current(ctx context.Context, sid string) (domauth.Context, bool, error)
-
 	Initiate(ctx context.Context, sid, clientID string) (domauth.FlowSpec, error)
 	StartStep(ctx context.Context, sid string, step domauth.StepSpec) (map[string]string, error)
 	CompleteStep(ctx context.Context, sid string, step domauth.StepSpec, inputs map[string]string) (done bool, next domauth.StepSpec, hints map[string]string, err error)

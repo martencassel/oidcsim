@@ -39,7 +39,7 @@ Domain types: Handlers work with domain value objects, not DTOs from persistence
 type Handler struct {
 	Sessions      session.SessionManager // interface for session read/write
 	AuthSvc       authapp.AuthService
-	AuthorizeSvc  oauth2app.AuthorizeService
+	AuthorizeSvc  oauth2app.AuthorizationService
 	DelegationSvc delegationapp.DelegationService
 }
 

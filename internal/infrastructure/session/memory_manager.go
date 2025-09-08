@@ -8,7 +8,8 @@ import (
 	"sync"
 
 	authn "github.com/martencassel/oidcsim/internal/domain/authentication"
-	"github.com/martencassel/oidcsim/internal/dto"
+
+	"github.com/martencassel/oidcsim/internal/interface/http/dto"
 )
 
 type memorySessionManager struct {
@@ -194,4 +195,11 @@ func (m *memorySessionManager) ClearAuthorizeRequest(sid string) error {
 	return nil
 }
 
-
+func (m *memorySessionManager) GetID(sid string) string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if _, exists := m.sessions[sid]; exists {
+		return sid
+	}
+	return ""
+}

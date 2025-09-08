@@ -66,12 +66,17 @@ func main() {
 	delegRepo := infradelegation.NewMemoryRepo()
 	//cliRepo := infradelegation.NewMemoryRepo()
 	mux := gin.Default()
+
+	sessionManager := infrasession.NewMemorySessionManager("oidcsim_session", session.WithAllowInsecure())
+
 	authHandler := &oauth2.Handler{}
 	authHandler.DelegationSvc = delegationapp.NewDelegationService(delegRepo)
-	sessionManager := infrasession.NewMemorySessionManager("oidcsim_session", session.WithAllowInsecure())
 	authHandler.Sessions = sessionManager
+	authHandler.AuthSvc = nil // TODO: implement authentication service
+	authHandler.AuthorizeSvc = nil
 
 	mux.GET("/authorize", authHandler.Authorize)
+
 	// if err := mux.Run(":8080"); err != nil {
 	// 	log.Fatalf("failed to run server: %v", err)
 	// }
